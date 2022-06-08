@@ -1,6 +1,8 @@
 Snapper
-=================
+=======
 
-When using Chrome to run Digital Signage it is important that Chrome does not show the "Aw snap" page. Because of the time Chrome runs continuously in case of Digital Signage the change of an "Aw snap" is real.
+## Reason for this extension
+When using Chrome to show digital signage content it is important that Chrome does not get stuck on the "Aw snap" error page. Since Chrome runs continuously hours on end for this purpose the chance of an "Aw snap" error is real.
 
-This Chrome extension will reload a page that runs into an "Aw snap" automatically making the interruption of the Digital Signage content as small as possible.
+## How Snapper works
+This Chrome extension will reload a tab that runs into an "Aw snap" error automatically, minimizing any interruption of the digital signage content.

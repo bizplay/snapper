@@ -4,7 +4,7 @@
 // https://github.com/unclespode/ohnoyoudidnt
 
 // Different ways to test crashes and other problems in Chrome/Chromium:
-// In Chrome/Chromium see chrome://about under "For debug", currenlty
+// In Chrome/Chromium see chrome://about under "For debug", currently
 // the following options are available:
 // chrome://badcastcrash/
 // chrome://crash/
@@ -40,13 +40,13 @@
 // For the use case of reloading a kiosk app or tabs that the user is using
 // the default of calling chrome.tabs.reload() is best
 
-var tabSuccessCount = {}; // store of succesful probe calls
+var tabSuccessCount = {}; // store of successful probe calls
 var tabUnresponsiveCount = {}; // store of probe calls that got stuck in limbo
 // Interval between checks, do not make this too short (
 // less than 1 second seems unwise, better no less than
 // 2 seconds) since it is also used to determine if a
 // tab is unresponsive
-var checkInterval = 10000; // in milliseconds
+var checkInterval = 10000; // 10 seconds in milliseconds
 var tabsChecked = {}; // store for arrays of tab-ids that were checked
 var checkIndex = 0; // index of current array of checked tab-ids
 var nrTabs = 0; // current number of tabs
@@ -70,8 +70,8 @@ function reloadTabIfNeeded(tab) {
 }
 
 function tabShouldBeReloaded(tab) {
-  // Reload if at least one sucessful no-op has occurred.
-  // This might be too causious but ensures the tab was working
+  // Reload if at least one successful no-op has occurred.
+  // This might be too cautious but ensures the tab was working
   // before it crashed
   // this also ensures that we do not reload a tab that takes a long
   // time to load (being unresponsive whilst doing so)
@@ -104,7 +104,7 @@ function tabCrashed() {
 
 function checkTab(thisTab) {
   if (relevantTab(thisTab)) {
-    // Perform a no-op as a probe to find if the tab reponds
+    // Perform a no-op as a probe to find if the tab responds
     chrome.tabs.executeScript(thisTab.id, {
       // To find crashed tabs probing with a no-op is enough
       // code: "null;"
@@ -125,7 +125,7 @@ function relevantTab(tab){
   return tab.status == "complete";
 }
 
-function reloadUnresposiveTabs(index, nrTabs, tabs) {
+function reloadUnresponsiveTabs(index, nrTabs, tabs) {
   if (nrTabs === tabs.length && nrTabs > tabsChecked[index].length) {
     var nrTabsToFind = nrTabs - tabsChecked[index].length;
     console.log("Found " + nrTabsToFind.toString() + " unresponsive tabs");
@@ -160,7 +160,7 @@ function checkTabs(tabs) {
   // form the ones that were done on unresponsive tabs)). The
   // checkInterval has to be long enough to make this a "certainty"
   if (nrTabs > 0) {
-    reloadUnresposiveTabs(checkIndex, nrTabs, tabs);
+    reloadUnresponsiveTabs(checkIndex, nrTabs, tabs);
   }
 
   // roll the checkIndex around after 10 iterations
