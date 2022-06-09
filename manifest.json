@@ -1,7 +1,7 @@
 {
     "name": "Snapper - 'Aw snap' tab reloader",
     "short_name": "Snapper",
-    "description": "Reload crashed or unresponsive Chrome tabs (showing the Aw, snap error). Specifically intended for digital signage content running in kiosk mode. The source code for this extension is hosted on GitHub (https://github.com/bizplay/snapper) under an MIT license.",
+    "description": "Reload crashed Chrome tabs (Aw, snap) intended for digital signage. Source code is MIT licensed (https://github.com/bizplay/snapper)",
     "manifest_version": 2,
     "version": "1.0.2",
     "background": {
