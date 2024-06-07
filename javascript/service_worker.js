@@ -40,41 +40,31 @@
 // For the use case of reloading a kiosk app or tabs that the user is using
 // the default of calling chrome.tabs.reload() is best
 
-// chrome.storage.local.set({ key: value }).then(() => {
-//   console.log("Value is set");
-// });
-// chrome.storage.local.get(["key"]).then((result) => {
-//   console.log("Value is " + result.key);
-// });
-// const value = await chrome.storage.local.get(["key"]);
 chrome.storage.local.set({ "tabSuccessCount": {} }) // store of successful probe calls
 chrome.storage.local.set({ "tabUnresponsiveCount": {} }) // store of probe calls that got stuck in limbo
 chrome.storage.local.set({ "tabsChecked": {} }) // store for arrays of tab-ids that were checked
 chrome.storage.local.set({ "checkIndex": 0 }) // index of current array of checked tab-ids
 chrome.storage.local.set({ "nrTabs": 0 }) // current number of tabs
-// var tabsChecked = {}; // store for arrays of tab-ids that were checked
-// var checkIndex = 0; // index of current array of checked tab-ids
-// var nrTabs = 0; // current number of tabs
 
-function reloadTabIfNeeded(tab) {
+function reloadTabIfNeeded(tab, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   return function(result) {
     if (tabCrashed()) {
       console.log("Crashed tab: title=" + (tab.title || "") + " id=" + tab.id +
                   " index=" + tab.index.toString() + " windowId=" + tab.windowId.toString() +
                   " sessionId=" + (tab.sessionId || "").toString() +
                   " highlighted=" + tab.highlighted.toString() + " active=" + tab.active.toString());
-      if (tabShouldBeReloaded(tab)) {
+      if (tabShouldBeReloaded(tab, tabSuccessCount)) {
         console.log("Reload tab:" + tab.id.toString());
         chrome.tabs.reload(tab.id);
       }
     } else {
-      registerSuccessfulNoOp(tab);
+      registerSuccessfulNoOp(tab, tabSuccessCount, tabUnresponsiveCount);
     }
     tabsChecked[checkIndex].push(tab.id);
   };
 }
 
-function tabShouldBeReloaded(tab) {
+function tabShouldBeReloaded(tab, tabSuccessCount) {
   // Reload if at least one successful no-op has occurred.
   // This might be too cautious but ensures the tab was working
   // before it crashed
@@ -83,7 +73,7 @@ function tabShouldBeReloaded(tab) {
   return tabSuccessCount[tab.id] > 0;
 }
 
-function registerSuccessfulNoOp(tab) {
+function registerSuccessfulNoOp(tab, tabSuccessCount, tabUnresponsiveCount) {
   if ((tabSuccessCount[tab.id] || null) === null) {
     tabSuccessCount[tab.id] = 0;
   }
@@ -91,7 +81,7 @@ function registerSuccessfulNoOp(tab) {
   tabUnresponsiveCount[tab.id] = 0;
 }
 
-function registerUnresponsive(tab) {
+function registerUnresponsive(tab, tabUnresponsiveCount) {
   if ((tabUnresponsiveCount[tab.id] || null) === null) {
     tabUnresponsiveCount[tab.id] = 0;
   }
@@ -107,7 +97,7 @@ function tabCrashed() {
   return chrome.runtime.lastError && chrome.runtime.lastError.message === "The tab was closed.";
 }
 
-function checkTab(thisTab) {
+function checkTab(thisTab, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   if (relevantTab(thisTab)) {
     // Perform a no-op as a probe to find if the tab responds
     chrome.scripting.executeScript(thisTab.id, {
@@ -116,7 +106,7 @@ function checkTab(thisTab) {
       // To find unresponsive tabs probing with some operation
       // that takes CPU-cycles is needed
       code: "1 + 1;"
-    }, reloadTabIfNeeded(thisTab));
+    }, reloadTabIfNeeded(thisTab, tabsChecked, tabSuccessCount, tabUnresponsiveCount));
   }
 }
 
@@ -130,7 +120,7 @@ function relevantTab(tab){
   return tab.status == "complete";
 }
 
-function reloadUnresponsiveTabs(index, nrTabs, tabs) {
+function reloadUnresponsiveTabs(index, nrTabs, tabs, tabsChecked) {
   if (nrTabs === tabs.length && nrTabs > tabsChecked[index].length) {
     var nrTabsToFind = nrTabs - tabsChecked[index].length;
     console.log("Found " + nrTabsToFind.toString() + " unresponsive tabs");
@@ -157,7 +147,7 @@ function reloadUnresponsiveTabs(index, nrTabs, tabs) {
   }
 }
 
-function checkTabs(tabs) {
+async function checkTabs(tabs) {
   // check for unresponsive tabs by checking the results of
   // the previous round of checkTab calls
   // NOTE: it is assumed all tabs have been checked (all callbacks
@@ -165,8 +155,14 @@ function checkTabs(tabs) {
   // form the ones that were done on unresponsive tabs)). The
   // interval between checks is 30 seconds (or more) which is 
   // long enough to make this a "certainty"
+  let nrTabs = await chrome.storage.local.get(["nrTabs"]);
+  let checkIndex = await chrome.storage.local.get(["checkIndex"]);
+  let tabsChecked = await chrome.storage.local.get(["tabsChecked"]);
+  let tabSuccessCount = await chrome.storage.local.get(["tabSuccessCount"]);
+  let tabUnresponsiveCount = await chrome.storage.local.get(["tabUnresponsiveCount"]);
+  
   if (nrTabs > 0) {
-    reloadUnresponsiveTabs(checkIndex, nrTabs, tabs);
+    reloadUnresponsiveTabs(checkIndex, nrTabs, tabs, tabsChecked);
   }
 
   // roll the checkIndex around after 10 iterations
@@ -174,29 +170,34 @@ function checkTabs(tabs) {
   nrTabs = tabs.length;
   tabsChecked[checkIndex] = [];
   for (var i = 0; i < tabs.length; i += 1) {
-    checkTab(tabs[i]);
+    checkTab(tabs[i], tabsChecked, tabSuccessCount, tabUnresponsiveCount);
   }
+
+  chrome.storage.local.set({ "nrTabs": nrTabs });
+  chrome.storage.local.set({ "checkIndex": checkIndex });
+  chrome.storage.local.set({ "tabsChecked": tabsChecked });
+  chrome.storage.local.set({ "tabSuccessCount": tabSuccessCount });
+  chrome.storage.local.set({ "tabUnresponsiveCount": tabUnresponsiveCount });
 }
 
 // Reset the count for tabs that are closed or that change
-function tabChanged(tabId, changeInfo, tab) {
+async function tabChanged(tabId, changeInfo, tab) {
+  let tabSuccessCount = await chrome.storage.local.get(["tabSuccessCount"]);
+  let tabUnresponsiveCount = await chrome.storage.local.get(["tabUnresponsiveCount"]);
+
   console.log("Resetting Stats for tab: id=" + tabId.toString() + " title=" +
               (tab !== undefined ? tab.title : ""));
   tabSuccessCount[tabId] = 0;
   tabUnresponsiveCount[tabId] = 0;
+
+  chrome.storage.local.set({ "tabSuccessCount": tabSuccessCount });
+  chrome.storage.local.set({ "tabUnresponsiveCount": tabUnresponsiveCount });
 }
 
-// async function startAlarm(name, duration) {
-//   await chrome.alarms.create(name, { periodInMinutes: 0.5 });
-// }
-// chrome.alarms.onAlarm.addListener(() => {
-//   chrome.action.setIcon({
-//     path: getRandomIconPath(),
-//   });
-// });
 // alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
-const repeat = await chrome.alarms.create("check-tab-alarm", { periodInMinutes: 0.5 });
-chrome.alarms.onAlarm.addListener(() => {
+const repeatingCheckTabsAlarm = await chrome.alarms.create("check-tabs-alarm", { periodInMinutes: 0.5 });
+// chrome.alarms.onAlarm.addListener(() => {
+repeatingCheckTabsAlarm.addListener(() => {
   chrome.tabs.query({}, checkTabs);
 });
 
