@@ -40,16 +40,21 @@
 // For the use case of reloading a kiosk app or tabs that the user is using
 // the default of calling chrome.tabs.reload() is best
 
-var tabSuccessCount = {}; // store of successful probe calls
-var tabUnresponsiveCount = {}; // store of probe calls that got stuck in limbo
-// Interval between checks, do not make this too short (
-// less than 1 second seems unwise, better no less than
-// 2 seconds) since it is also used to determine if a
-// tab is unresponsive
-var checkInterval = 10000; // 10 seconds in milliseconds
-var tabsChecked = {}; // store for arrays of tab-ids that were checked
-var checkIndex = 0; // index of current array of checked tab-ids
-var nrTabs = 0; // current number of tabs
+// chrome.storage.local.set({ key: value }).then(() => {
+//   console.log("Value is set");
+// });
+// chrome.storage.local.get(["key"]).then((result) => {
+//   console.log("Value is " + result.key);
+// });
+// const value = await chrome.storage.local.get(["key"]);
+chrome.storage.local.set({ "tabSuccessCount": {} }) // store of successful probe calls
+chrome.storage.local.set({ "tabUnresponsiveCount": {} }) // store of probe calls that got stuck in limbo
+chrome.storage.local.set({ "tabsChecked": {} }) // store for arrays of tab-ids that were checked
+chrome.storage.local.set({ "checkIndex": 0 }) // index of current array of checked tab-ids
+chrome.storage.local.set({ "nrTabs": 0 }) // current number of tabs
+// var tabsChecked = {}; // store for arrays of tab-ids that were checked
+// var checkIndex = 0; // index of current array of checked tab-ids
+// var nrTabs = 0; // current number of tabs
 
 function reloadTabIfNeeded(tab) {
   return function(result) {
@@ -105,7 +110,7 @@ function tabCrashed() {
 function checkTab(thisTab) {
   if (relevantTab(thisTab)) {
     // Perform a no-op as a probe to find if the tab responds
-    chrome.tabs.executeScript(thisTab.id, {
+    chrome.scripting.executeScript(thisTab.id, {
       // To find crashed tabs probing with a no-op is enough
       // code: "null;"
       // To find unresponsive tabs probing with some operation
@@ -158,7 +163,8 @@ function checkTabs(tabs) {
   // NOTE: it is assumed all tabs have been checked (all callbacks
   // initiated in the previous checkTabs call have ended (apart
   // form the ones that were done on unresponsive tabs)). The
-  // checkInterval has to be long enough to make this a "certainty"
+  // interval between checks is 30 seconds (or more) which is 
+  // long enough to make this a "certainty"
   if (nrTabs > 0) {
     reloadUnresponsiveTabs(checkIndex, nrTabs, tabs);
   }
@@ -180,9 +186,19 @@ function tabChanged(tabId, changeInfo, tab) {
   tabUnresponsiveCount[tabId] = 0;
 }
 
-setInterval(function() {
+// async function startAlarm(name, duration) {
+//   await chrome.alarms.create(name, { periodInMinutes: 0.5 });
+// }
+// chrome.alarms.onAlarm.addListener(() => {
+//   chrome.action.setIcon({
+//     path: getRandomIconPath(),
+//   });
+// });
+// alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
+const repeat = await chrome.alarms.create("check-tab-alarm", { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener(() => {
   chrome.tabs.query({}, checkTabs);
-}, checkInterval);
+});
 
 // If the tab reloads, reset stats
 chrome.tabs.onUpdated.addListener(tabChanged);
