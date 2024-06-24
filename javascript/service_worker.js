@@ -194,13 +194,39 @@ async function tabChanged(tabId, changeInfo, tab) {
   chrome.storage.local.set({ "tabUnresponsiveCount": tabUnresponsiveCount });
 }
 
-// alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
-const repeatingCheckTabsAlarm = await chrome.alarms.create("check-tabs-alarm", { periodInMinutes: 0.5 });
-// chrome.alarms.onAlarm.addListener(() => {
-repeatingCheckTabsAlarm.addListener(() => {
-  chrome.tabs.query({}, checkTabs);
-});
+// // alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
+// const repeatingCheckTabsAlarm = await chrome.alarms.create("check-tabs-alarm", { periodInMinutes: 0.5 });
+// // chrome.alarms.onAlarm.addListener(() => {
+// repeatingCheckTabsAlarm.addListener(() => {
+//   chrome.tabs.query({}, checkTabs);
+// });
+// async function startRepeatedChecks() {
+//   // alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
+//   const repeatCheckTabAlarm = await chrome.alarms.create("check-tab-alarm", { periodInMinutes: 0.5 });
+// }
 
+// startRepeatedChecks();
+
+// starting the alarm only on install is insufficient
+// chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+//   if (reason !== 'install') {
+//     return;
+//   }
+
+//   await chrome.alarms.create("check-tab-alarm", { periodInMinutes: 0.5 });
+// });
+async function startCheckTabAlarm() {
+  // alarms cannot repeat in periods less than 30 seconds (0.5 minutes)
+  await chrome.alarms.create("check-tab-alarm", { periodInMinutes: 0.5 });
+}
+
+startCheckTabAlarm();
+// If the check-tab-alarm occurs (every 30 seconds) check the tabs
+chrome.alarms.onAlarm.addListener(function(alarm) {
+  if (alarm.name === "check-tab-alarm") {
+    chrome.tabs.query({}, checkTabs);
+  }
+});
 // If the tab reloads, reset stats
 chrome.tabs.onUpdated.addListener(tabChanged);
 chrome.tabs.onRemoved.addListener(tabChanged);
