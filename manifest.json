@@ -3,7 +3,7 @@
     "short_name": "Snapper",
     "description": "Reload crashed Chrome tabs (Aw, snap) intended for digital signage. Source code is MIT licensed (https://github.com/bizplay/snapper)",
     "manifest_version": 3,
-    "version": "1.0.4",
+    "version": "1.1.0",
     "background": {
         "service_worker": "javascript/service_worker.js"
     },
