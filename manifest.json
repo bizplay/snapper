@@ -5,10 +5,14 @@
     "manifest_version": 3,
     "version": "1.1.0",
     "background": {
-        "service_worker": "javascript/service_worker.js"
+      "service_worker": "javascript/service_worker.js"
     },
     "permissions": [
-        "tabs", "alarms", "storage"
+      "tabs", "alarms", "storage", "scripting"
+    ],
+    "host_permissions": [
+      "http://*/*",
+      "https://*/*"
     ],
     "action": {
       "default_icon": {
