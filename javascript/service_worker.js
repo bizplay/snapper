@@ -100,13 +100,16 @@ function tabCrashed() {
 function checkTab(thisTab, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   if (relevantTab(thisTab)) {
     // Perform a no-op as a probe to find if the tab responds
-    chrome.scripting.executeScript(thisTab.id, {
+    chrome.scripting.executeScript(
+      target: { tabId: thisTab.id }, 
+      func: () => {
       // To find crashed tabs probing with a no-op is enough
       // code: "null;"
       // To find unresponsive tabs probing with some operation
       // that takes CPU-cycles is needed
-      code: "1 + 1;"
-    }, reloadTabIfNeeded(thisTab, tabsChecked, tabSuccessCount, tabUnresponsiveCount));
+        "1 + 1;"
+      }, reloadTabIfNeeded(thisTab, tabsChecked, tabSuccessCount, tabUnresponsiveCount)
+    );
   }
 }
 
@@ -117,7 +120,7 @@ function relevantTab(tab){
   // return tab.url.substring(0, 4) == "http" && tab.status == "complete";
   // This makes testing this extension more difficult, to test use
   // the line below
-  return tab.status == "complete";
+  return tab !== undefined && tab !== null && tab.status !== undefined && tab.status !== null && tab.status === "complete";
 }
 
 function reloadUnresponsiveTabs(index, nrTabs, tabs, tabsChecked) {
