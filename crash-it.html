@@ -1,0 +1,12 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+    <head>
+        <script type="text/javascript" charset="utf-8">
+            function crash() { 
+                a='text';
+                while (a += a + a);
+            }
+        </script>
+    </head>
+    <body onload="crash();"></body>
+</html>
