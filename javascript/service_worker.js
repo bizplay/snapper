@@ -48,6 +48,13 @@ chrome.storage.local.set({ "nrTabs": 0 }) // current number of tabs
 
 function reloadTabIfNeeded(tab, checkIndex, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   return function(result) {
+    if (chrome.runtime.lastError !== undefined) console.log("reloadTabIfNeeded - chrome.runtime.lastError.message=" + chrome.runtime.lastError.message);
+    console.log("reloadTabIfNeeded - executing anonymous function on " + (tab.title || "") + 
+                ", result=(docId:" + 
+                  (result !== undefined ? result[0].documentId.toString() + 
+                    ", frameId:" + result[0].frameId.toString() + 
+                    ", result:" + (result[0].result ? result[0].result.toString() : "-") : "-") + 
+                ")");
     if (tabCrashed()) {
       console.log("Crashed tab: title=" + (tab.title || "") + " id=" + tab.id +
                   " index=" + tab.index.toString() + " windowId=" + tab.windowId.toString() +
@@ -94,12 +101,14 @@ function tabCrashed() {
   // is reported which is available as the chrome.runtime.lastError
   // The error incorrectly reports the tab was closed instead of the fact that the
   // tab does not respond.
+  if (chrome.runtime.lastError !== undefined) console.log("tabCrashed - chrome.runtime.lastError.message=" + chrome.runtime.lastError.message);
   return chrome.runtime.lastError && chrome.runtime.lastError.message === "The tab was closed.";
 }
 
 function checkTab(thisTab, checkIndex, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   if (relevantTab(thisTab)) {
     // Perform a no-op as a probe to find if the tab responds
+    console.log("checkTab - executeScript on: " + (thisTab !== undefined ? thisTab.id.toString() : "-"));
     chrome.scripting.executeScript(
       {
         target: { tabId: thisTab.id }, 
@@ -161,18 +170,14 @@ async function checkTabs(tabs) {
   // form the ones that were done on unresponsive tabs)). The
   // interval between checks is 30 seconds (or more) which is 
   // long enough to make this a "certainty"
-  let hash = await chrome.storage.local.get(["nrTabs"]); 
+  let hash = await chrome.storage.local.get(["nrTabs", "checkIndex", "tabsChecked", "tabSuccessCount", "tabUnresponsiveCount"]); 
   let nrTabs = hash.nrTabs;
-  hash = await chrome.storage.local.get(["checkIndex"]);
   let checkIndex = hash.checkIndex;
-  hash = await chrome.storage.local.get(["tabsChecked"]);
   let tabsChecked = hash.tabsChecked;
-  hash = await chrome.storage.local.get(["tabSuccessCount"]);
   let tabSuccessCount = hash.tabSuccessCount;
-  hash = await chrome.storage.local.get(["tabUnresponsiveCount"]);
   let tabUnresponsiveCount = hash.tabUnresponsiveCount;
   
-  console.log("Checking tabs: " + nrTabs.toString() + ", checkIndex: " + checkIndex.toString());
+  console.log("Checking tabs - nrTabs: " + nrTabs.toString() + ", checkIndex: " + checkIndex.toString());
   if (nrTabs > 0) {
     reloadUnresponsiveTabs(checkIndex, nrTabs, tabs, tabsChecked, tabSuccessCount, tabUnresponsiveCount);
   }
@@ -194,13 +199,12 @@ async function checkTabs(tabs) {
 
 // Reset the count for tabs that are closed or that change
 async function tabChanged(tabId, changeInfo, tab) {
-  let hash = await chrome.storage.local.get(["tabSuccessCount"]);
+  let hash = await chrome.storage.local.get(["tabSuccessCount", "tabUnresponsiveCount"]);
   let tabSuccessCount = hash.tabSuccessCount;
-  hash = await chrome.storage.local.get(["tabUnresponsiveCount"]);
   let tabUnresponsiveCount = hash.tabUnresponsiveCount;
 
-  console.log("Resetting Stats for tab: id=" + tabId.toString() + " title=" +
-              (tab !== undefined ? tab.title : ""));
+  console.log("tabChanged - Resetting stats for tab: id=" + tabId.toString() + ", title=" +
+              (tab !== undefined ? tab.title : "-") + ", changeInfo=" + (changeInfo !== undefined ? changeInfo.status : "-"));
   tabSuccessCount[tabId] = 0;
   tabUnresponsiveCount[tabId] = 0;
 
