@@ -52,7 +52,6 @@ chrome.storage.local.set({ "nrTabs": 0 }) // current number of tabs
 
 function reloadTabIfNeeded(tab, checkIndex, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   return function(result) {
-    if (tab.title === "Crash-it") console.log("reloadTabIfNeeded - on Crash-it: chrome.runtime.lastError.message=" + (chrome.runtime.lastError !== undefined ? chrome.runtime.lastError.message : "-none-"));
     // console.log("reloadTabIfNeeded - executing anonymous function on " + (tab.title || "") + 
     //             ", result={docId:" + 
     //               (result !== undefined ? result[0].documentId.toString() + 
@@ -60,7 +59,7 @@ function reloadTabIfNeeded(tab, checkIndex, tabsChecked, tabSuccessCount, tabUnr
     //                 ", result:" + (result[0].result ? result[0].result.toString() : "-") : "-") + 
     //             "}");
     if (tabCrashed()) {
-      console.log("Crashed tab: title=" + (tab.title || "") + " id=" + tab.id +
+      console.log("reloadTabIfNeeded - Crashed tab: title=" + (tab.title || "") + " id=" + tab.id +
                   " index=" + tab.index.toString() + " windowId=" + tab.windowId.toString() +
                   " sessionId=" + (tab.sessionId || "").toString() +
                   " highlighted=" + tab.highlighted.toString() + " active=" + tab.active.toString());
@@ -105,7 +104,7 @@ function tabCrashed() {
   // is reported which is available as the chrome.runtime.lastError
   // The error incorrectly reports the tab was closed instead of the fact that the
   // tab does not respond.
-  if (chrome.runtime.lastError !== undefined) console.log("tabCrashed - chrome.runtime.lastError.message=" + chrome.runtime.lastError.message);
+  // if (chrome.runtime.lastError !== undefined) console.log("tabCrashed - chrome.runtime.lastError.message=" + chrome.runtime.lastError.message);
   return chrome.runtime.lastError && chrome.runtime.lastError.message === "The tab was closed.";
 }
 
@@ -121,7 +120,7 @@ function checkTab(thisTab, checkIndex, tabsChecked, tabSuccessCount, tabUnrespon
           // null;
           // To find unresponsive tabs probing with some operation
           // that takes CPU-cycles is needed
-          console.log("Snapper - executing injected anonymous function");
+          // console.log("Snapper - executing injected anonymous function");
           1 + 1;
         }
       }, 
