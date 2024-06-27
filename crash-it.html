@@ -1,10 +1,14 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
+    <title>Crash-it</title>
     <head>
         <script type="text/javascript" charset="utf-8">
             function crash() { 
                 a='text';
-                while (a += a + a);
+                while (a += a + a) { console.log(a.length.toString()); };
+            }
+            function crash2() {
+                for (var i = 5; i > 3; i *= i) { console.log(i.toString()); }
             }
         </script>
     </head>

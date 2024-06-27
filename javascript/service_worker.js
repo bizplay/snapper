@@ -21,6 +21,9 @@
 // chrome://quit/
 // chrome://restart/
 //
+// To crash the whole browser:
+// chrome://inducebrowsercrashforrealz
+//
 // Another option is to open the developer tools on a tab that should be
 // crashed and in the JavaScript console type:
 //
@@ -40,6 +43,7 @@
 // For the use case of reloading a kiosk app or tabs that the user is using
 // the default of calling chrome.tabs.reload() is best
 
+// Initialise variables in local storage (needed since manifest version 3)
 chrome.storage.local.set({ "tabSuccessCount": {} }) // store of successful probe calls
 chrome.storage.local.set({ "tabUnresponsiveCount": {} }) // store of probe calls that got stuck in limbo
 chrome.storage.local.set({ "tabsChecked": {} }) // store for arrays of tab-ids that were checked
@@ -48,13 +52,13 @@ chrome.storage.local.set({ "nrTabs": 0 }) // current number of tabs
 
 function reloadTabIfNeeded(tab, checkIndex, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   return function(result) {
-    if (chrome.runtime.lastError !== undefined) console.log("reloadTabIfNeeded - chrome.runtime.lastError.message=" + chrome.runtime.lastError.message);
-    console.log("reloadTabIfNeeded - executing anonymous function on " + (tab.title || "") + 
-                ", result=(docId:" + 
-                  (result !== undefined ? result[0].documentId.toString() + 
-                    ", frameId:" + result[0].frameId.toString() + 
-                    ", result:" + (result[0].result ? result[0].result.toString() : "-") : "-") + 
-                ")");
+    if (tab.title === "Crash-it") console.log("reloadTabIfNeeded - on Crash-it: chrome.runtime.lastError.message=" + (chrome.runtime.lastError !== undefined ? chrome.runtime.lastError.message : "-none-"));
+    // console.log("reloadTabIfNeeded - executing anonymous function on " + (tab.title || "") + 
+    //             ", result={docId:" + 
+    //               (result !== undefined ? result[0].documentId.toString() + 
+    //                 ", frameId:" + result[0].frameId.toString() + 
+    //                 ", result:" + (result[0].result ? result[0].result.toString() : "-") : "-") + 
+    //             "}");
     if (tabCrashed()) {
       console.log("Crashed tab: title=" + (tab.title || "") + " id=" + tab.id +
                   " index=" + tab.index.toString() + " windowId=" + tab.windowId.toString() +
@@ -108,7 +112,7 @@ function tabCrashed() {
 function checkTab(thisTab, checkIndex, tabsChecked, tabSuccessCount, tabUnresponsiveCount) {
   if (relevantTab(thisTab)) {
     // Perform a no-op as a probe to find if the tab responds
-    console.log("checkTab - executeScript on: " + (thisTab !== undefined ? thisTab.id.toString() : "-"));
+    // console.log("checkTab - executeScript on: " + (thisTab !== undefined ? thisTab.title : "-") + "("+ (thisTab !== undefined ? thisTab.id.toString() : "-") + ")");
     chrome.scripting.executeScript(
       {
         target: { tabId: thisTab.id }, 
@@ -117,6 +121,7 @@ function checkTab(thisTab, checkIndex, tabsChecked, tabSuccessCount, tabUnrespon
           // null;
           // To find unresponsive tabs probing with some operation
           // that takes CPU-cycles is needed
+          console.log("Snapper - executing injected anonymous function");
           1 + 1;
         }
       }, 
